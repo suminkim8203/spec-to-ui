@@ -1,0 +1,10 @@
+{
+  "LICENSE": "5a5cf5e2d4f77e84a90c4e62b7c944b813a1eb0e48265da2b175f1106fd3c9bd",
+  "SKILL.md": "46e2b24b81b5a33f702e2fdd6a620942ac7151993f3a15cfcabf001ec40fba3b",
+  "agents/openai.yaml": "612f0b0516e3164c37055467b88fe3d59b150d71367ed86c4ba46f703e06bdaa",
+  "references/composition-and-validation.md": "090baab5121ed86bc5a962e5cdcbbc38aa007960bd5db1f9af98e5370c443cf8",
+  "references/drafts-and-feedback.md": "bdfae985bb9d063c30350ed220d5d00786306311ce82089cfa8430e39a78497e",
+  "references/reference-selection.md": "de1edc93ecfbfc04c52be07b430041e4464e87ac0aba77cd066b42c0a942fe9a",
+  "references/review-and-handoff.md": "d77c277e72df676b77ec907f1ea0f5b52c43a3cd0f8c210112dbc2582ab0e36e",
+  "references/structure-and-decisions.md": "6b52f0ee7542d9bfcece63dddc4550b8be17ca262ee9e9910b3d65d6dcf96b0b"
+}

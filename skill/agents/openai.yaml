@@ -1,0 +1,3 @@
+interface:
+  display_name: "spec-to-ui"
+  short_description: "요구사항 명세서를 읽고 실제 참고와 대표 화면으로 UI 배치를 구체화합니다"
