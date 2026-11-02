@@ -1,110 +1,89 @@
 #!/usr/bin/env node
-import { readFile, readdir, mkdir, lstat, mkdtemp, cp, rename, rm } from 'node:fs/promises';
-import { createHash, randomUUID } from 'node:crypto';
-import { homedir } from 'node:os';
-import { dirname, join, resolve, isAbsolute } from 'node:path';
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { dirname, join, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
-const source = join(root, 'skill');
-const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
-const manifest = JSON.parse(await readFile(join(root, 'skill-manifest.json'), 'utf8'));
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const version = '0.2.0';
+const defaultMarketplace = 'suminkim8203/spec-to-ui';
+const installId = 'spec-to-ui@spec-to-ui';
 
-async function exists(path) {
-  try { return await lstat(path); }
-  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-}
-async function files(path, prefix = '') {
+function files(folder) {
   const result = [];
-  for (const entry of await readdir(path, { withFileTypes: true })) {
-    const name = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isSymbolicLink()) throw new Error(`심볼릭 링크가 포함되어 있습니다: ${name}`);
-    if (entry.isDirectory()) result.push(...await files(join(path, entry.name), name));
-    else if (entry.isFile()) result.push(name);
-    else throw new Error(`지원하지 않는 파일 형식입니다: ${name}`);
+  for (const name of readdirSync(folder).sort()) {
+    const path = join(folder, name);
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink()) throw new Error('Symbolic link is not permitted: ' + relative(root, path));
+    if (stat.isDirectory()) result.push(...files(path));
+    else if (stat.isFile()) result.push(relative(root, path).split('\\').join('/'));
+    else throw new Error('Unexpected file type: ' + relative(root, path));
   }
   return result.sort();
 }
-async function matches(path) {
-  const entries = await files(path);
-  if (JSON.stringify(entries) !== JSON.stringify(Object.keys(manifest).sort())) return false;
-  for (const name of entries) if (digest(await readFile(join(path, name))) !== manifest[name]) return false;
-  return true;
-}
-async function validatePackage() {
-  for (const name of Object.keys(manifest)) {
-    if (isAbsolute(name) || name.split(/[\\/]/).includes('..')) throw new Error('잘못된 스킬 파일 경로입니다.');
+
+function checkBundle() {
+  const manifest = JSON.parse(readFileSync(join(root, 'bundle-manifest.json'), 'utf8'));
+  if (manifest.version !== version || !manifest.sha256 || typeof manifest.sha256 !== 'object') {
+    throw new Error('Invalid bundle manifest');
   }
-  if (!await matches(source)) throw new Error('패키지의 스킬 파일이 검증 목록과 일치하지 않습니다. 다시 내려받아 주세요.');
+  for (const [path, expected] of Object.entries(manifest.sha256)) {
+    if (!path || isAbsolute(path) || path.includes('\\') || path.split('/').some(p => p === '..' || p === '.')) {
+      throw new Error('Invalid manifest path');
+    }
+    const full = join(root, path);
+    if (!lstatSync(full).isFile() || lstatSync(full).isSymbolicLink()) throw new Error('Invalid bundle file: ' + path);
+    const actual = createHash('sha256').update(readFileSync(full)).digest('hex');
+    if (actual !== expected) throw new Error('Bundle file differs: ' + path);
+  }
+  const listed = Object.keys(manifest.sha256).filter(p => p.startsWith('skills/')).sort();
+  const actual = files(join(root, 'skills'));
+  if (JSON.stringify(listed) !== JSON.stringify(actual)) throw new Error('Skill file list differs');
+  const plugin = JSON.parse(readFileSync(join(root, 'plugin.json'), 'utf8'));
+  if (plugin.name !== 'spec-to-ui' || plugin.version !== version) throw new Error('Plugin identity differs');
+  return { version, skillFiles: listed.length, skills: readdirSync(join(root, 'skills')).sort() };
 }
+
 function help() {
-  console.log(`spec-to-ui ${pkg.version}
-
-사용법:
-  npx spec-to-ui install              사용자 스킬 폴더에 설치
-  npx spec-to-ui install --project    현재 프로젝트에 설치
-  npx spec-to-ui status               설치 상태 확인
-  npx spec-to-ui install --replace    기존 설치를 백업하고 교체
-
-옵션:
-  --project             현재 폴더의 .agents/skills/spec-to-ui 사용
-  --target <directory>  지정한 스킬 폴더 사용
-  --replace             기존 폴더를 백업한 뒤 교체
-  --help                도움말
-  --version             버전
-
-설치 후 Codex에서 $spec-to-ui를 호출합니다.
-스킬이 목록에 나타나지 않으면 Codex를 다시 시작해 주세요.`);
+  process.stdout.write(`spec-to-ui ${version}\n\nUsage:\n  spec-to-ui install [--codex <binary>] [--marketplace <source>] [--dry-run]\n  spec-to-ui status [--codex <binary>] [--dry-run]\n  spec-to-ui check\n  spec-to-ui --version\n\nInstall registers the marketplace and installs the spec-to-ui plugin through Codex.\nThe existing standalone skill and development plugin are not replaced.\nDefault marketplace: ${defaultMarketplace}\nRequires Node.js 22+ and a Codex version with plugin support.\nPython 3 is needed for companion search tools.\nOld --target, --project and --replace options are not supported by the plugin installer.\n`);
 }
-async function main() {
+
+function main() {
   const args = process.argv.slice(2);
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) { help(); return; }
-  if (args.length === 1 && args[0] === '--version') { console.log(pkg.version); return; }
+  if (!args.length || (args.length === 1 && ['--help', '-h', 'help'].includes(args[0]))) return help();
+  if (args.length === 1 && ['--version', '-v'].includes(args[0])) return process.stdout.write(version + '\n');
   const command = args.shift();
-  if (!['install', 'status'].includes(command)) throw new Error('install 또는 status 명령을 사용해 주세요.');
-  let project = false, replace = false, custom = null;
+  if (!['install', 'status', 'check'].includes(command)) throw new Error('Unknown command: ' + command);
+  const options = { codex: 'codex', marketplace: defaultMarketplace, dryRun: false };
+  const seen = new Set();
   while (args.length) {
     const flag = args.shift();
-    if (flag === '--project' && !project) project = true;
-    else if (flag === '--replace' && !replace) replace = true;
-    else if (flag === '--target' && custom === null) {
-      custom = args.shift();
-      if (!custom || custom.startsWith('--')) throw new Error('--target 뒤에 폴더 경로가 필요합니다.');
-    } else throw new Error(`지원하지 않거나 중복된 옵션입니다: ${flag}`);
+    if (seen.has(flag)) throw new Error('Duplicate option: ' + flag);
+    seen.add(flag);
+    if (flag === '--dry-run' && command !== 'check') options.dryRun = true;
+    else if (flag === '--codex' && command !== 'check') {
+      const value = args.shift();
+      if (!value || value.startsWith('--')) throw new Error('Missing value: ' + flag);
+      options.codex = value;
+    } else if (flag === '--marketplace' && command === 'install') {
+      const value = args.shift();
+      if (!value || value.startsWith('--')) throw new Error('Missing value: ' + flag);
+      options.marketplace = value;
+    } else throw new Error('Unsupported option for ' + command + ': ' + flag);
   }
-  if (custom && project) throw new Error('--target과 --project는 함께 사용할 수 없습니다.');
-  if (command === 'status' && replace) throw new Error('--replace는 install에만 사용할 수 있습니다.');
-  const target = custom ? resolve(custom) : join(project ? process.cwd() : homedir(), '.agents', 'skills', 'spec-to-ui');
-  if (target === source || source.startsWith(target + '/') || target.startsWith(source + '/')) throw new Error('패키지 내부를 설치 대상으로 사용할 수 없습니다.');
-  await validatePackage();
-  const current = await exists(target);
-  if (current && (!current.isDirectory() || current.isSymbolicLink())) throw new Error(`설치 대상이 일반 폴더가 아닙니다. 기존 경로를 유지합니다: ${target}`);
-  if (command === 'status') {
-    console.log(!current ? `설치되지 않았습니다: ${target}` : await matches(target) ? `동일한 스킬이 설치되어 있습니다: ${target}` : `다른 내용의 스킬이 설치되어 있습니다: ${target}`);
-    return;
+  const bundle = checkBundle();
+  if (command === 'check') return process.stdout.write(JSON.stringify({ ok: true, ...bundle }, null, 2) + '\n');
+  const commands = command === 'install'
+    ? [['plugin', 'marketplace', 'add', options.marketplace, '--json'], ['plugin', 'add', installId, '--json']]
+    : [['plugin', 'list', '--json']];
+  if (options.dryRun) return process.stdout.write(JSON.stringify({ dryRun: true, commands: commands.map(args => ({ executable: options.codex, args })) }, null, 2) + '\n');
+  for (const args of commands) {
+    const result = spawnSync(options.codex, args, { stdio: 'inherit', shell: false });
+    if (result.error) throw new Error('Could not start Codex: ' + result.error.message + '. Use --codex <binary> to select your CLI.');
+    if (result.status !== 0) throw new Error('Codex command failed' + (result.signal ? ' (' + result.signal + ')' : ' with exit code ' + result.status));
   }
-  if (current && await matches(target)) { console.log(`동일한 스킬이 이미 설치되어 있습니다: ${target}`); return; }
-  if (current && !replace) throw new Error(`기존 스킬을 유지했습니다: ${target}\n백업 후 교체하려면 --replace를 사용해 주세요.`);
-  await mkdir(dirname(target), { recursive: true });
-  const stage = await mkdtemp(join(dirname(target), '.spec-to-ui-install-'));
-  let backup = null;
-  try {
-    await cp(source, stage, { recursive: true, force: false });
-    if (!await matches(stage)) throw new Error('복사한 파일의 검증에 실패했습니다.');
-    if (current) {
-      // Backups stay outside the skills directory to avoid duplicate discovery.
-      const backupRoot = join(dirname(dirname(target)), 'skill-backups', 'spec-to-ui');
-      await mkdir(backupRoot, { recursive: true });
-      backup = join(backupRoot, `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}`);
-      await rename(target, backup);
-    } else if (await exists(target)) throw new Error('설치 대상이 작업 중 생성되어 설치를 중단했습니다.');
-    try { await rename(stage, target); }
-    catch (error) { if (backup) await rename(backup, target); throw error; }
-  } finally { await rm(stage, { recursive: true, force: true }); }
-  console.log(`spec-to-ui ${pkg.version} 설치 완료: ${target}`);
-  if (backup) console.log(`이전 스킬 백업: ${backup}`);
-  console.log('Codex에서 $spec-to-ui를 호출해 주세요.');
+  if (command === 'install') process.stdout.write('Installed via Codex. Start a new session and call $spec-to-ui:spec-to-ui.\n');
 }
-try { await main(); }
-catch (error) { console.error(`spec-to-ui: ${error.message}`); process.exitCode = 1; }
+
+try { main(); } catch (error) { process.stderr.write('spec-to-ui: ' + error.message + '\n'); process.exitCode = 1; }

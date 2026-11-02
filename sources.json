@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-02",
+  "purpose": "spec-to-ui 0.2.0 public plugin release",
+  "sources": {
+    "spec-to-ui": {
+      "repository": "suminkim8203/spec-to-ui",
+      "version": "0.1.0 baseline; validated 0.2.0 composition"
+    },
+    "specframe": {
+      "repository": "ProjectFrame-skills/SpecFrame",
+      "commit": "0a9c555672384f27713184d55724155798af252e",
+      "permission": "user confirmed creator redistribution permission; do not infer MIT relicensing"
+    },
+    "design-taste-frontend": {
+      "repository": "Leonxlnx/taste-skill",
+      "commit": "12af471f627f866411b4bd785b19646d3672784c",
+      "license": "MIT"
+    },
+    "ui-ux-pro-max": {
+      "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "3a13158ff1f32156cbe144108de48eda2ecaed9a",
+      "upstream_version": "2.15.0",
+      "license": "MIT"
+    }
+  },
+  "uiux_files_resolved_to_pinned_upstream": [
+    {
+      "path": "data/catalog-summary.json",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/data/catalog-summary.json",
+      "git_blob": "184d9619c19c15e930abb7dbb783f20a6e7798d0"
+    },
+    {
+      "path": "data/stacks/nuxt-ui.csv",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/data/stacks/nuxt-ui.csv",
+      "git_blob": "f6b8000e106aaf421a61da45134e35c8f03e18c6"
+    },
+    {
+      "path": "scripts/core.py",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/scripts/core.py",
+      "git_blob": "82ebc78d513873d61511b149c35e9bd4e2ce5528"
+    },
+    {
+      "path": "scripts/search.py",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/scripts/search.py",
+      "git_blob": "752bc1c0ed669b4021346f28c16a89e7f62e8043"
+    },
+    {
+      "path": "scripts/tests/fixtures/relevance-thresholds.json",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/scripts/tests/fixtures/relevance-thresholds.json",
+      "git_blob": "1ae9bcd33a075da0e36e98dd7f68ebd1ee22362a"
+    },
+    {
+      "path": "scripts/tests/test_web_stack_freshness.py",
+      "url": "https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/3a13158ff1f32156cbe144108de48eda2ecaed9a/.claude/skills/ui-ux-pro-max/scripts/tests/test_web_stack_freshness.py",
+      "git_blob": "434c89b7c2aab7db6623415b1280486df1a91133"
+    }
+  ]
+}

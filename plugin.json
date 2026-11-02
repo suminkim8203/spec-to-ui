@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spec-to-ui",
+  "version": "0.2.0",
+  "description": "명세서를 화면으로 발전시키고 필요한 요구 보충·설계 스킬을 연결합니다.",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "spec-to-ui",
+        "shortDescription": "명세서에서 UI 설계와 미리보기까지 필요한 스킬을 연결합니다.",
+        "category": "Productivity"
+      }
+    }
+  },
+  "homepage": "https://github.com/suminkim8203/spec-to-ui"
+}

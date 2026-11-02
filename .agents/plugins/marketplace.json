@@ -1,0 +1,22 @@
+{
+  "name": "spec-to-ui",
+  "interface": {
+    "displayName": "spec-to-ui"
+  },
+  "plugins": [
+    {
+      "name": "spec-to-ui",
+      "source": {
+        "source": "npm",
+        "package": "spec-to-ui",
+        "version": "0.2.0",
+        "registry": "https://registry.npmjs.org"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
